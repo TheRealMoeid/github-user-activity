@@ -1,4 +1,4 @@
-# Requirements: GitHub User Activity CLI
+python -m pytest -v# Requirements: GitHub User Activity CLI
 
 ## 1. Project Overview
 
