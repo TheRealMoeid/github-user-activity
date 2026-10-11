@@ -14,7 +14,7 @@
 
 **Package and dependency management:** `pip`, virtual environment (`.venv`), and `pyproject.toml` using setuptools.
 
-**Current development stage:** Stage 3 — Event Formatter.
+**Current development stage:** Stage 4 — CLI Integration (implemented and verified).
 
 **Requirements source of truth:** `REQUIREMENTS.md`
 
@@ -91,7 +91,7 @@ Pull-request rules:
 - A closed pull request is described as merged only when the payload explicitly establishes `merged is True`.
 - Other recognized and unknown actions must not produce unsupported claims.
 
-**Latest verification reported by the user:**
+**Stage 3 verification reported by the user (superseded by the Stage 4 total below):**
 
 ```text
 58 passed in 0.46s
@@ -105,23 +105,33 @@ The reported full suite included:
 
 The user ran `python -m pytest -v` on Windows using Python 3.13.16 and pytest 9.1.1.
 
-This confirms the reported local test result. The repository's current commit, push state, and complete working-tree state must be checked independently before declaring the stage committed or published.
+This confirms the reported local test result. The repository's current commit, push state, and complete working-tree state must be checked independently before declaring the stage committed or published. When the remote repository was inspected, Stage 3 was pushed as `origin/stage-3-event-formatter` (commit `a07dfc1`) and had not been merged into the default branch.
 
-### Stage 4: CLI Integration — Pending
+### Stage 4: CLI Integration — Implemented and Verified
 
-The CLI has not yet been completed and integrated with the API client and formatter.
+Implementation file: `src/github_activity/cli.py`
 
-The next stage should:
+Test file: `tests/test_cli.py`
 
-1. Inspect `src/github_activity/cli.py` and the existing package configuration.
-2. Confirm the intended command-line interface and exit codes against `REQUIREMENTS.md`.
-3. Connect argument parsing, the API client, and the formatter.
-4. Distinguish an empty API response from a response containing no displayable supported events.
-5. Display concise user-facing errors for expected failures.
-6. Add focused CLI tests.
-7. Verify the installed console command and full test suite.
+`main(argv=None) -> int` parses arguments with `argparse`, calls `github_api.fetch_user_events`, passes the result to `formatter.format_events`, prints the output, and returns the exit code. The module imports `github_api` and `formatter` as modules so tests can replace `github_api.fetch_user_events` without network access.
 
-Do not begin implementation until the Stage 3 changes and documentation have been reviewed and the user has approved the next implementation step.
+Agreed Stage 4 decisions:
+
+- `argparse` handles argument parsing. `main` catches the `SystemExit` it raises and returns the code, so `main` always returns an integer. `--help` returns 0.
+- The username is stripped. A blank username is rejected as invalid input (usage message, exit code 2) before any request is made.
+- The activity header and list and both "no activity" messages go to stdout. Usage and errors go to stderr, and errors are prefixed with `Error:`.
+- The original API result distinguishes the two empty cases: an empty list gives "No recent public activity found for <username>."; a non-empty list with no formatted messages gives "No supported recent activity to display for <username>."
+- Only `GitHubAPIError` is caught. Unexpected exceptions are intentionally not hidden.
+- The CLI words the user-not-found message (it includes the username) and the invalid-response message (generic, to avoid exposing internals). Other API errors reuse the message carried by the exception, because those messages already meet the requirements.
+
+Known limitation: fully CLI-owned error messages would require `GitHubHTTPError` to expose the HTTP status code so the CLI could tell 5xx errors from other HTTP errors. That change to `github_api.py` was deliberately left out of Stage 4 and could be a separate future stage.
+
+Reported verification:
+
+- `python -m pytest -v`: 74 passed in 0.56s (Python 3.13.16, pytest 9.1.1, Windows), including 16 CLI tests.
+- `git diff --check`: clean.
+- Manual checks with the installed command: an existing user with activity (exit code 0), a nonexistent username (error message, exit code 1), no username (usage, exit code 2), and extra arguments (usage message).
+- Not verified manually: live rate-limit, forbidden, 5xx, network-failure, and invalid-response cases. These are covered by mocked tests only.
 
 ---
 
@@ -301,38 +311,28 @@ When a stage is completed and verified, update the relevant project context and 
 
 ## 9. Current Git State and Untracked Files
 
-The most recently reported working-tree state was on branch `stage-3-event-formatter`.
+Branches seen on the remote: `phase-1/project-foundation` (default branch), `phase-2/api-client`, and `stage-3-event-formatter`. Their history is linear: foundation, API client, a documentation update, then Stage 3 (`a07dfc1`).
 
-Reported modified files:
+The user creates the `stage-4-cli-integration` branch from `stage-3-event-formatter`. The Stage 4 patch was applied locally on that branch; whether it has been committed or pushed must be confirmed with `git status` and `git log`.
 
-- `PROJECT_CONTEXT.md`
-- `REQUIREMENTS.md`
-- `src/github_activity/formatter.py`
+Planned finish: when Stage 4 and its documentation are complete, the user creates a `main` branch and merges the entire project into it. The user controls all commits, pushes, and merges.
 
-Reported untracked files:
+During the Stage 4 verification, the only untracked files reported besides the Stage 4 files were `stage-3-event-formatter.patch` and `stage-4-cli-integration.patch`. Patch files are development artifacts and ordinarily should not be committed. Preserve untracked files unless the user authorizes changes.
 
-- `PHASE_1_VERIFICATION.md`
-- `stage-3-event-formatter.patch`
-- `tests/test_formatter.py`
-
-The user reported that the full test suite passed with 58 tests.
-
-This status is historical and may have changed. Check `git status`, recent commits, and the actual remote branch before making further recommendations.
-
-Preserve untracked files unless their purpose is understood and the user authorizes changes. Do not delete, overwrite, stage, or include unrelated files in a patch without reviewing their purpose.
-
-The patch file is a development artifact and ordinarily should remain outside the committed application source unless the user explicitly wants it tracked.
+This status is historical and may have changed. Check `git status`, recent commits, and the remote before making further recommendations.
 
 ---
 
 ## 10. Known Incomplete Work and Verification Gaps
 
-- Stage 3 has passed the user's reported full test suite, but its final commit and remote state must be confirmed.
-- CLI integration and `tests/test_cli.py` remain pending.
-- The installed `github-activity <username>` command has not been confirmed through a complete end-to-end manual test.
+- Stage 4 passed the user's reported full test suite (74 tests) and manual checks, but its commit and push state must be confirmed.
+- Live rate-limit, forbidden, server-error, network-failure, and invalid-response behavior has been verified only with mocked tests.
 - API client tests are mocked; they do not establish that every live GitHub request will succeed.
-- Documentation should reflect only implemented and verified behavior.
-- Do not describe the entire project as complete merely because the current test suite passes.
+- The merge into `main` has not been done.
+- No `LICENSE` file exists in the repository yet, while `README.md` links to it as "if present". Choose a license before publication or remove the link.
+- The formatter's generic wording for unknown issue actions (for example "Issue activity on issue #1 in <repository>") reads awkwardly in real output. It is accurate and within the agreed requirements; any wording change would be a separate stage.
+- Fully CLI-owned error messages would need a status code on `GitHubHTTPError`; not done (see Stage 4).
+- Do not describe the project as published or merged until the user confirms it.
 
 ---
 
@@ -340,8 +340,8 @@ The patch file is a development artifact and ordinarily should remain outside th
 
 Start by confirming the project state from the repository and `REQUIREMENTS.md`.
 
-The immediate priority is to finish reviewing Stage 3, ensure that the documentation accurately reflects its implementation and test results, and confirm the Git state before recommending a commit.
+All four planned stages are implemented. Confirm with `git status` and `git log` that Stage 4 and the documentation update are committed, then help the user create `main` and merge the project, following the user's workflow (the user runs all Git commands).
 
-After Stage 3 is finalized, discuss Stage 4 — CLI integration — before generating any implementation patch.
+Do not add features without agreeing on scope first. Follow-ups the user may raise: the license decision, clearer formatter wording for unknown issue actions, and the `GitHubHTTPError` status-code change.
 
 Preserve the user's patch-first workflow, avoid unnecessary scope, and clearly distinguish verified facts from assumptions.

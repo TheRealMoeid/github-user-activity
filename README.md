@@ -6,20 +6,21 @@ A Python command-line application that retrieves a GitHub user's recent public a
 
 ## Status
 
-**Current stage: Stage 3 — Event Formatter**
+**Current stage: Stage 4 — CLI Integration (implemented and verified)**
 
 - **Stage 1 — Project Foundation:** Completed.
 - **Stage 2 — GitHub API Client:** Implemented and tested.
-- **Stage 3 — Event Formatter:** Implemented; all 58 tests in the full suite passed in the user's local environment.
-- **Stage 4 — CLI Integration:** Pending.
+- **Stage 3 — Event Formatter:** Implemented and tested.
+- **Stage 4 — CLI Integration:** Implemented; all 74 tests in the full suite passed in the user's local environment, and the installed command was checked manually.
 
-The formatter and API client have automated test coverage. The complete CLI workflow, including the installed console command, has not yet been verified end to end.
+All three modules have automated tests that do not use the network. The installed `github-activity` command was run against the live GitHub API for an existing user, a nonexistent user, a missing username, and extra arguments, and the exit codes for success, user not found, and missing username were confirmed. Rate-limit, forbidden, server-error, network-failure, and invalid-response handling is covered by mocked tests only.
 
 ## Features
 
 - Retrieves recent public GitHub events through the GitHub REST API.
 - Uses Python's standard library for HTTP requests and JSON processing.
 - Formats eight supported event types into readable messages.
+- Provides a `github-activity <username>` command with plain output, concise error messages, and documented exit codes.
 - Handles incomplete event payloads without inventing activity details.
 - Skips unsupported or unusable events without stopping the remaining activity from being processed.
 - Includes automated tests that do not require a live GitHub connection.
@@ -53,17 +54,15 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
-## Intended usage
+## Usage
 
-The planned command is:
+After installing the project (see Development setup), run:
 
 ```bash
 github-activity <username>
 ```
 
-**Note:** CLI integration is not yet complete. The command should not be considered end-to-end verified until Stage 4 is implemented and tested.
-
-Illustrative output:
+Example output:
 
 ```text
 GitHub activity for octocat:
@@ -75,6 +74,23 @@ GitHub activity for octocat:
 ```
 
 Actual output depends on the public events returned by GitHub.
+
+## Error behavior and exit codes
+
+Activity and the "no activity" messages are printed to stdout. Usage and error messages are printed to stderr, and expected failures never show a Python traceback.
+
+| Situation | Output | Exit code |
+|---|---|---|
+| Activity displayed | Header and activity list | 0 |
+| Empty API response | `No recent public activity found for <username>.` | 0 |
+| Events returned, none supported | `No supported recent activity to display for <username>.` | 0 |
+| Missing, extra, or blank argument | Usage message | 2 |
+| User not found | `Error: GitHub user '<username>' was not found.` | 1 |
+| Rate limit | Error asking you to wait before retrying | 1 |
+| Other forbidden response | Error stating that GitHub denied access | 1 |
+| GitHub server error | Error suggesting you try again later | 1 |
+| Network failure or timeout | Error stating that GitHub could not be reached | 1 |
+| Invalid or unexpected API response | Error stating that the response could not be processed | 1 |
 
 ## Supported event types
 
@@ -101,13 +117,14 @@ Activate the virtual environment, then run:
 python -m pytest -v
 ```
 
-To run only the formatter tests:
+To run only the formatter or CLI tests:
 
 ```powershell
 python -m pytest tests/test_formatter.py -v
+python -m pytest tests/test_cli.py -v
 ```
 
-**Latest reported verification:** 58 tests passed in 0.46 seconds. This result was reported by the user from the local development environment; it is not a claim of an independent rerun against the current remote branch.
+**Latest reported verification:** 74 tests passed in 0.56 seconds (Python 3.13.16, pytest 9.1.1, Windows). This result was reported by the user from the local development environment; it is not a claim of an independent rerun against the current remote branch.
 
 Automated tests must not require live GitHub API requests.
 

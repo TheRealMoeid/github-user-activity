@@ -6,20 +6,20 @@
 **Python package:** `github_activity`  
 **CLI command:** `github-activity`  
 **Python version:** Python 3.13+  
-**Status:** Requirements agreed; implementation is in progress.
+**Status:** Requirements agreed; implementation stages 1 to 4 are complete.
 
 Build a command-line application that accepts a GitHub username, retrieves that user's recent public GitHub events through the GitHub REST API, and displays supported activity in a readable terminal format.
 
 The application is intended to satisfy the roadmap.sh GitHub User Activity project while using a small, maintainable Python architecture.
 
-### Implementation status as of the Stage 3 verification
+### Implementation status as of the Stage 4 verification
 
 - Project foundation: implemented.
 - GitHub API client: implemented.
 - Event formatter: implemented.
-- Full automated test suite: 58 tests passed in the user's reported local run.
-- CLI integration: pending.
-- Installed command end-to-end verification: pending.
+- CLI integration: implemented.
+- Full automated test suite: 74 tests passed in the user's reported local run.
+- Installed command: checked manually for an existing user, a nonexistent user, a missing username, and extra arguments.
 
 These statuses describe reported implementation progress and do not change the requirements or acceptance criteria below.
 
@@ -383,19 +383,19 @@ Do not mark requirements as implemented or tests as passing without verification
 
 Version 1 is complete when all of the following are true:
 
-- [ ] The project installs into a Python 3.13+ virtual environment using `pip`.
-- [ ] The installed `github-activity <username>` command works.
-- [ ] The CLI validates arguments and uses the documented exit codes.
-- [ ] The API client uses only the Python standard library for HTTP.
-- [ ] The API client handles HTTP, network, timeout, JSON, and response-structure errors.
-- [ ] Missing users, rate limits, other forbidden responses, and server errors are distinguished appropriately.
-- [ ] All eight supported event types have formatter coverage.
-- [ ] Unsupported events are skipped safely.
-- [ ] Empty activity and no-supported-activity cases have distinct messages.
-- [ ] Automated tests run without making live GitHub requests.
-- [ ] The full test suite passes.
-- [ ] `README.md` and `PROJECT_CONTEXT.md` accurately describe the completed implementation.
-- [ ] No out-of-scope feature has been added without an explicit decision.
+- [x] The project installs into a Python 3.13+ virtual environment using `pip`.
+- [x] The installed `github-activity <username>` command works.
+- [x] The CLI validates arguments and uses the documented exit codes.
+- [x] The API client uses only the Python standard library for HTTP.
+- [x] The API client handles HTTP, network, timeout, JSON, and response-structure errors.
+- [x] Missing users, rate limits, other forbidden responses, and server errors are distinguished appropriately.
+- [x] All eight supported event types have formatter coverage.
+- [x] Unsupported events are skipped safely.
+- [x] Empty activity and no-supported-activity cases have distinct messages.
+- [x] Automated tests run without making live GitHub requests.
+- [x] The full test suite passes.
+- [x] `README.md` and `PROJECT_CONTEXT.md` accurately describe the completed implementation.
+- [x] No out-of-scope feature has been added without an explicit decision.
 
 ## 13. Implementation Workflow
 
