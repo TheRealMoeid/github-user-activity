@@ -14,7 +14,7 @@
 
 **Package and dependency management:** `pip`, virtual environment (`.venv`), and `pyproject.toml` using setuptools.
 
-**Current development stage:** Stage 4 — CLI Integration (implemented and verified).
+**Current development stage:** Stage 6 — Collapse Repeated Activity Lines (implemented and verified). All six stages are implemented; the license decision and the merge into `main` remain.
 
 **Requirements source of truth:** `REQUIREMENTS.md`
 
@@ -126,12 +126,47 @@ Agreed Stage 4 decisions:
 
 Known limitation: fully CLI-owned error messages would require `GitHubHTTPError` to expose the HTTP status code so the CLI could tell 5xx errors from other HTTP errors. That change to `github_api.py` was deliberately left out of Stage 4 and could be a separate future stage.
 
-Reported verification:
+Reported verification at the end of Stage 4 (the 74-test total is historical; see Stage 6 for the current total):
 
 - `python -m pytest -v`: 74 passed in 0.56s (Python 3.13.16, pytest 9.1.1, Windows), including 16 CLI tests.
 - `git diff --check`: clean.
 - Manual checks with the installed command: an existing user with activity (exit code 0), a nonexistent username (error message, exit code 1), no username (usage, exit code 2), and extra arguments (usage message).
 - Not verified manually: live rate-limit, forbidden, 5xx, network-failure, and invalid-response cases. These are covered by mocked tests only.
+
+### Stage 5: Push Event Fallback — Implemented and Verified
+
+Implementation file: `src/github_activity/formatter.py` (`_format_push_event`)
+
+Test file: `tests/test_formatter.py`
+
+Reason for the stage: a live check of `https://api.github.com/users/josebbk/events` returned 30 events, all `PushEvent`. Every payload contained only `repository_id`, `push_id`, `ref`, `head`, and `before`, with no `size` and no `commits`. Before this stage the formatter skipped all of them, so `github-activity josebbk` printed "No supported recent activity to display for josebbk." The mocked tests had not caught this because they used the older payload shape. The change is consistent with GitHub's changelog entry of 2025-08-08 announcing removal of commit summaries from Events API payloads.
+
+Agreed decision (option A): keep `Pushed N commits to <repository>` whenever `size` or a complete short `commits` list gives a reliable count; otherwise report `Pushed to <branch> in <repository>` (branch taken from a `refs/heads/` ref) or plain `Pushed to <repository>`. A count is never invented. Pushes without a usable repository name are still skipped. Rejected: fetching the real count through the compare API (extra requests per push, outside the agreed network scope).
+
+Reported verification:
+
+- `python -m pytest -v`: 88 passed in 0.31s (Python 3.13.16, pytest 9.1.1, Windows).
+- `git diff --check`: clean.
+- Live check: `github-activity josebbk` now lists the pushes as `Pushed to main in josebbk/99ways-website`.
+- Pushed as `origin/stage-5-push-fallback` (commit `4c087e3`).
+
+Not verified: the live shape of `PullRequestEvent` payloads. The same changelog said pull-request payloads would be trimmed. If `merged` is absent, merged pull requests are reported as closed, which is safe but less informative.
+
+### Stage 6: Collapse Repeated Activity Lines — Implemented and Verified
+
+Implementation file: `src/github_activity/cli.py` (`_collapse_repeats`)
+
+Test file: `tests/test_cli.py` (7 new tests)
+
+Reason for the stage: with Stage 5 alone, a user with many pushes to the same branch produced dozens of identical lines.
+
+Agreed decision (option 1): a private helper in `cli.py` merges runs of identical consecutive messages into one line with an ` (N times)` suffix. Only adjacent duplicates are merged, so the order of GitHub's feed is preserved. A single line has no suffix. Counts inside messages are never summed. `format_events` is unchanged and still returns one message per usable event. Rejected: a public helper in `formatter.py` and grouping push events inside `format_events`.
+
+Reported verification:
+
+- The user reported that all 95 tests passed. The pytest output for this run was not shared, so its timing and tool versions are not recorded here.
+- Live check: `github-activity josebbk` prints a single `Pushed to main in josebbk/99ways-website (30 times)` line, and `github-activity TheRealMoeid` shows merged runs such as `(3 times)` while non-adjacent duplicates stay separate.
+- Pushed as `origin/stage-6-collapse-repeats` (commit `8363eb1`).
 
 ---
 
@@ -209,6 +244,8 @@ The agreed no-activity messages are:
 - Events exist, but none can be displayed as supported activity: `No supported recent activity to display for <username>.`
 
 These are CLI responsibilities and must not be implemented inside the formatter.
+
+The CLI also merges runs of identical consecutive activity lines into one line with an ` (N times)` suffix. This is a presentation step in `cli.py`; the formatter still returns one message per usable event.
 
 ---
 
@@ -311,13 +348,11 @@ When a stage is completed and verified, update the relevant project context and 
 
 ## 9. Current Git State and Untracked Files
 
-Branches seen on the remote: `phase-1/project-foundation` (default branch), `phase-2/api-client`, and `stage-3-event-formatter`. Their history is linear: foundation, API client, a documentation update, then Stage 3 (`a07dfc1`).
+Branches seen on the remote: `phase-1/project-foundation` (default branch), `phase-2/api-client`, `stage-3-event-formatter`, `stage-4-cli-integration`, `stage-5-push-fallback`, and `stage-6-collapse-repeats`. Their history is linear: foundation, API client, a documentation update, Stage 3 (`a07dfc1`), Stage 4 (`febe70f`), the Stage 4 documentation update (`d996cff`), Stage 5 (`4c087e3`), and Stage 6 (`8363eb1`). Each stage branch was created from the previous one. This was checked by inspecting the remote repository, not the user's local working tree.
 
-The user creates the `stage-4-cli-integration` branch from `stage-3-event-formatter`. The Stage 4 patch was applied locally on that branch; whether it has been committed or pushed must be confirmed with `git status` and `git log`.
+Planned finish: the user creates a `main` branch and merges the entire project into it, then makes `main` the default branch. The user controls all commits, pushes, and merges.
 
-Planned finish: when Stage 4 and its documentation are complete, the user creates a `main` branch and merges the entire project into it. The user controls all commits, pushes, and merges.
-
-During the Stage 4 verification, the only untracked files reported besides the Stage 4 files were `stage-3-event-formatter.patch` and `stage-4-cli-integration.patch`. Patch files are development artifacts and ordinarily should not be committed. Preserve untracked files unless the user authorizes changes.
+Patch files are development artifacts and ordinarily should not be committed. The user's working tree has shown these untracked patch files: `stage-3-event-formatter.patch`, `stage-4-cli-integration.patch`, `stage-4-documentation.patch`, and `stage-5-push-fallback.patch`; later patch files are expected too. Preserve untracked files unless the user authorizes changes.
 
 This status is historical and may have changed. Check `git status`, recent commits, and the remote before making further recommendations.
 
@@ -325,13 +360,15 @@ This status is historical and may have changed. Check `git status`, recent commi
 
 ## 10. Known Incomplete Work and Verification Gaps
 
-- Stage 4 passed the user's reported full test suite (74 tests) and manual checks, but its commit and push state must be confirmed.
+- The merge into `main` has not been done, and `main` does not exist yet. The remote default branch is still `phase-1/project-foundation`.
+- No `LICENSE` file exists in the repository, while `README.md` links to it as "if present". Choose a license before publication or remove the link.
+- The live shape of `PullRequestEvent` payloads has not been checked (see Stage 5). Merged pull requests may be reported as closed if `merged` is missing.
 - Live rate-limit, forbidden, server-error, network-failure, and invalid-response behavior has been verified only with mocked tests.
-- API client tests are mocked; they do not establish that every live GitHub request will succeed.
-- The merge into `main` has not been done.
-- No `LICENSE` file exists in the repository yet, while `README.md` links to it as "if present". Choose a license before publication or remove the link.
+- API client tests are mocked; they do not establish that every live GitHub request will succeed. The Stage 5 push-payload problem showed that mocked payloads can drift from the live API.
 - The formatter's generic wording for unknown issue actions (for example "Issue activity on issue #1 in <repository>") reads awkwardly in real output. It is accurate and within the agreed requirements; any wording change would be a separate stage.
+- The pull-request branch of the formatter contains unused placeholder strings in its `actions` mapping, and the `ready_for_review` and `converted_to_draft` branches have no tests.
 - Fully CLI-owned error messages would need a status code on `GitHubHTTPError`; not done (see Stage 4).
+- A truncated response (`http.client.IncompleteRead`) is not an `OSError` and may escape the API client as a traceback.
 - Do not describe the project as published or merged until the user confirms it.
 
 ---
@@ -340,8 +377,8 @@ This status is historical and may have changed. Check `git status`, recent commi
 
 Start by confirming the project state from the repository and `REQUIREMENTS.md`.
 
-All four planned stages are implemented. Confirm with `git status` and `git log` that Stage 4 and the documentation update are committed, then help the user create `main` and merge the project, following the user's workflow (the user runs all Git commands).
+All six stages are implemented and the user reported 95 passing tests. Confirm with `git status` and `git log` that the documentation update for Stage 6 is committed. Then help with the remaining agreed work, in this order: the license decision, then creating `main`, merging the project into it, and making it the default branch, following the user's workflow (the user runs all Git commands).
 
-Do not add features without agreeing on scope first. Follow-ups the user may raise: the license decision, clearer formatter wording for unknown issue actions, and the `GitHubHTTPError` status-code change.
+Do not add features without agreeing on scope first. Optional follow-ups the user may raise: clearer formatter wording for unknown issue actions, a live check of pull-request payloads, the `GitHubHTTPError` status-code change, and the small cleanups listed in section 10.
 
 Preserve the user's patch-first workflow, avoid unnecessary scope, and clearly distinguish verified facts from assumptions.
