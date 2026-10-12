@@ -119,9 +119,39 @@ def test_push_event_uses_size_or_complete_short_commit_list(payload, expected):
     assert format_events([event("PushEvent", payload)]) == [expected]
 
 
-def test_push_event_skips_when_commit_count_is_not_reliable():
-    assert format_events([event("PushEvent", {"commits": [{"message": str(i)} for i in range(20)]})]) == []
-    assert format_events([event("PushEvent", {"commits": "not a list"})]) == []
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        # Current GitHub payloads carry no size or commits, only the ref.
+        ({"ref": "refs/heads/main"}, "Pushed to main in octocat/Hello-World"),
+        ({"ref": "refs/heads/feature/login"}, "Pushed to feature/login in octocat/Hello-World"),
+        ({"ref": "refs/heads/main", "head": "abc", "before": "def"}, "Pushed to main in octocat/Hello-World"),
+        # An unreliable or malformed count falls back instead of skipping.
+        ({"commits": [{"message": str(i)} for i in range(20)], "ref": "refs/heads/dev"}, "Pushed to dev in octocat/Hello-World"),
+        ({"commits": "not a list", "ref": "refs/heads/dev"}, "Pushed to dev in octocat/Hello-World"),
+        ({"size": "three", "ref": "refs/heads/dev"}, "Pushed to dev in octocat/Hello-World"),
+        ({"size": True, "ref": "refs/heads/dev"}, "Pushed to dev in octocat/Hello-World"),
+        ({"size": -1, "ref": "refs/heads/dev"}, "Pushed to dev in octocat/Hello-World"),
+        # Unusable refs give the plain repository-level message.
+        ({}, "Pushed to octocat/Hello-World"),
+        ({"ref": "refs/tags/v1.0"}, "Pushed to octocat/Hello-World"),
+        ({"ref": "refs/heads/"}, "Pushed to octocat/Hello-World"),
+        ({"ref": "refs/heads/   "}, "Pushed to octocat/Hello-World"),
+        ({"ref": 12}, "Pushed to octocat/Hello-World"),
+    ],
+)
+def test_push_event_without_reliable_count_uses_branch_or_generic_fallback(payload, expected):
+    assert format_events([event("PushEvent", payload)]) == [expected]
+
+
+def test_push_event_count_wins_over_ref_when_available():
+    item = event("PushEvent", {"size": 2, "ref": "refs/heads/main"})
+    assert format_events([item]) == ["Pushed 2 commits to octocat/Hello-World"]
+
+
+def test_push_event_without_usable_repository_is_still_skipped():
+    item = {"type": "PushEvent", "repo": {"name": " "}, "payload": {"ref": "refs/heads/main"}}
+    assert format_events([item]) == []
 
 
 @pytest.mark.parametrize(
@@ -158,7 +188,7 @@ def test_unsupported_events_are_skipped_without_affecting_supported_events():
 def test_malformed_event_does_not_stop_later_events_from_being_formatted():
     items = [
         None,
-        event("PushEvent", {"size": "three"}),
+        event("CreateEvent", {"ref_type": "branch"}),
         event("WatchEvent"),
     ]
     assert format_events(items) == ["Starred octocat/Hello-World"]

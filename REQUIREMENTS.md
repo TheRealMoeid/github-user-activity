@@ -176,7 +176,8 @@ Other event types must be skipped. The formatter must not print raw JSON or inve
 
 - Format a valid, non-negative integer `payload.size` as the commit count when available.
 - If `size` is missing or invalid, use the length of a valid `payload.commits` list only when it contains fewer than 20 entries.
-- A commits list containing 20 or more entries may be truncated; if no reliable count is available, skip the event.
+- A commits list containing 20 or more entries may be truncated, so it is not a reliable count.
+- Current GitHub Events API payloads can omit both `size` and `commits`. When no reliable count is available, do not skip the event and do not invent a count. Report the push without one: `Pushed to <branch> in <repository>` when `payload.ref` is `refs/heads/<branch>` with a non-empty branch name, otherwise `Pushed to <repository>`.
 - Use singular `commit` for a count of one and plural `commits` otherwise.
 - Do not invent a commit count.
 

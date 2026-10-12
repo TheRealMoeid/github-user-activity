@@ -40,22 +40,40 @@ def _positive_issue_number(payload: dict[str, Any], key: str) -> int | None:
     return number
 
 
-def _format_push_event(event: dict[str, Any], repository: str) -> str | None:
+def _push_branch(payload: dict[str, Any]) -> str | None:
+    """Return the branch name from a ``refs/heads/<branch>`` ref, if usable."""
+    ref = payload.get("ref")
+    prefix = "refs/heads/"
+    if not isinstance(ref, str) or not ref.startswith(prefix):
+        return None
+
+    branch = ref[len(prefix):].strip()
+    return branch or None
+
+
+def _format_push_event(event: dict[str, Any], repository: str) -> str:
     payload = _payload(event)
     size = payload.get("size")
 
+    count: int | None = None
     if isinstance(size, int) and not isinstance(size, bool) and size >= 0:
         count = size
     else:
         commits = payload.get("commits")
-        # GitHub can truncate the commits array at 20 entries. Do not claim
-        # that its length is the total when it reaches that limit.
-        if not isinstance(commits, list) or len(commits) >= 20:
-            return None
-        count = len(commits)
+        # GitHub can truncate the commits array at 20 entries, and newer Events
+        # API payloads omit both fields. Only trust a complete short list.
+        if isinstance(commits, list) and len(commits) < 20:
+            count = len(commits)
 
-    noun = "commit" if count == 1 else "commits"
-    return f"Pushed {count} {noun} to {repository}"
+    if count is not None:
+        noun = "commit" if count == 1 else "commits"
+        return f"Pushed {count} {noun} to {repository}"
+
+    # No reliable commit count: describe the push without inventing one.
+    branch = _push_branch(payload)
+    if branch is not None:
+        return f"Pushed to {branch} in {repository}"
+    return f"Pushed to {repository}"
 
 
 def _format_issues_event(event: dict[str, Any], repository: str) -> str:

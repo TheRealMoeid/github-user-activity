@@ -84,7 +84,7 @@ Push-event count rules:
 
 1. Prefer a valid, non-negative integer `payload.size`.
 2. Otherwise, use the length of a valid commits list only when it contains fewer than 20 entries.
-3. If the list has 20 or more entries and no reliable count is available, skip the event rather than risk reporting a truncated count.
+3. If the list has 20 or more entries and no reliable count is available, do not report a count. Stage 5 changed this from skipping the event: the formatter now reports `Pushed to <branch> in <repository>` (branch taken from a `refs/heads/` ref) or plain `Pushed to <repository>`, because GitHub's Events API no longer includes `size` or `commits` in push payloads.
 
 Pull-request rules:
 

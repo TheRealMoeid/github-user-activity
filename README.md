@@ -98,7 +98,7 @@ The formatter supports these eight event types:
 
 | Event type | Example activity |
 |---|---|
-| `PushEvent` | Pushed 3 commits to a repository |
+| `PushEvent` | Pushed 3 commits to a repository, or Pushed to a branch when GitHub provides no commit count |
 | `IssuesEvent` | Opened issue #42 |
 | `IssueCommentEvent` | Commented on issue #42 |
 | `PullRequestEvent` | Opened or merged pull request #12 |
