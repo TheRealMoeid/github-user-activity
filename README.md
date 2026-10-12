@@ -75,6 +75,8 @@ GitHub activity for octocat:
 
 Actual output depends on the public events returned by GitHub.
 
+Identical consecutive lines are merged into one line with a count, for example `- Pushed to main in octocat/Hello-World (3 times)`.
+
 ## Error behavior and exit codes
 
 Activity and the "no activity" messages are printed to stdout. Usage and error messages are printed to stderr, and expected failures never show a Python traceback.

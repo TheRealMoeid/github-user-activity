@@ -256,6 +256,8 @@ GitHub activity for octocat:
 
 The exact activity depends on events returned by GitHub; the example is illustrative and must not be hard-coded.
 
+The CLI merges runs of identical consecutive activity lines into one line with an ` (N times)` suffix, for example `- Pushed to main in octocat/Hello-World (3 times)`. Only adjacent duplicates are merged, so the order of GitHub's feed is preserved, and counts inside messages are never summed.
+
 ### Empty activity
 
 If the API successfully returns an empty event list, print:

@@ -71,6 +71,37 @@ def test_displays_formatted_activity(fetch, capsys):
     assert fetch.calls == ["octocat"]
 
 
+def test_consecutive_identical_activity_is_collapsed_with_a_count(fetch, capsys):
+    push = event("PushEvent", {"ref": "refs/heads/main"})
+    fetch.result = [push, push, push, event("WatchEvent"), push]
+
+    assert cli.main(["octocat"]) == 0
+
+    assert capsys.readouterr().out == (
+        "GitHub activity for octocat:\n"
+        "\n"
+        "- Pushed to main in octocat/Hello-World (3 times)\n"
+        "- Starred octocat/Hello-World\n"
+        "- Pushed to main in octocat/Hello-World\n"
+    )
+
+
+@pytest.mark.parametrize(
+    ("messages", "expected"),
+    [
+        ([], []),
+        (["a"], ["a"]),
+        (["a", "a"], ["a (2 times)"]),
+        (["a", "b", "a"], ["a", "b", "a"]),
+        (["a", "a", "b", "b", "b", "a"], ["a (2 times)", "b (3 times)", "a"]),
+        # Counts inside messages are not summed.
+        (["Pushed 3 commits to x"] * 2, ["Pushed 3 commits to x (2 times)"]),
+    ],
+)
+def test_collapse_repeats_merges_only_adjacent_duplicates(messages, expected):
+    assert cli._collapse_repeats(messages) == expected
+
+
 def test_username_is_stripped_before_request_and_display(fetch, capsys):
     fetch.result = [event("WatchEvent")]
 

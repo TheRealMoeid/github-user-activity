@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
+from itertools import groupby
 
 from github_activity import formatter, github_api
 
@@ -33,6 +34,20 @@ def _error_message(error: github_api.GitHubAPIError, username: str) -> str:
     if isinstance(error, github_api.InvalidResponseError):
         return "The response from GitHub could not be processed."
     return str(error)
+
+
+def _collapse_repeats(messages: Sequence[str]) -> list[str]:
+    """Merge runs of identical consecutive messages into one line.
+
+    Only adjacent duplicates are merged, so the order of GitHub's feed is
+    preserved. A run of N identical messages (N > 1) is shown once with an
+    ``(N times)`` suffix. Counts inside the messages are never summed.
+    """
+    collapsed: list[str] = []
+    for message, run in groupby(messages):
+        repeats = sum(1 for _ in run)
+        collapsed.append(message if repeats == 1 else f"{message} ({repeats} times)")
+    return collapsed
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -67,7 +82,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     print(f"GitHub activity for {username}:")
     print()
-    for message in messages:
+    for message in _collapse_repeats(messages):
         print(f"- {message}")
     return EXIT_SUCCESS
 
