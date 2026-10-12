@@ -151,4 +151,4 @@ The following features are out of scope:
 
 - [REQUIREMENTS.md](REQUIREMENTS.md) — Agreed functional and technical requirements.
 - [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) — Architecture, development status, decisions, and AI handoff instructions.
-- [LICENSE](LICENSE) — Project license, if present.
+- [LICENSE](LICENSE) — MIT License.

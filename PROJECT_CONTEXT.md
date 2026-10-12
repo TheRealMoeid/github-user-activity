@@ -14,7 +14,7 @@
 
 **Package and dependency management:** `pip`, virtual environment (`.venv`), and `pyproject.toml` using setuptools.
 
-**Current development stage:** Stage 6 — Collapse Repeated Activity Lines (implemented and verified). All six stages are implemented; the license decision and the merge into `main` remain.
+**Current development stage:** Stage 6 — Collapse Repeated Activity Lines (implemented and verified). All six stages are implemented and the project is licensed under the MIT License (`LICENSE`); the merge into `main` remains.
 
 **Requirements source of truth:** `REQUIREMENTS.md`
 
@@ -361,7 +361,6 @@ This status is historical and may have changed. Check `git status`, recent commi
 ## 10. Known Incomplete Work and Verification Gaps
 
 - The merge into `main` has not been done, and `main` does not exist yet. The remote default branch is still `phase-1/project-foundation`.
-- No `LICENSE` file exists in the repository, while `README.md` links to it as "if present". Choose a license before publication or remove the link.
 - The live shape of `PullRequestEvent` payloads has not been checked (see Stage 5). Merged pull requests may be reported as closed if `merged` is missing.
 - Live rate-limit, forbidden, server-error, network-failure, and invalid-response behavior has been verified only with mocked tests.
 - API client tests are mocked; they do not establish that every live GitHub request will succeed. The Stage 5 push-payload problem showed that mocked payloads can drift from the live API.
@@ -377,7 +376,7 @@ This status is historical and may have changed. Check `git status`, recent commi
 
 Start by confirming the project state from the repository and `REQUIREMENTS.md`.
 
-All six stages are implemented and the user reported 95 passing tests. Confirm with `git status` and `git log` that the documentation update for Stage 6 is committed. Then help with the remaining agreed work, in this order: the license decision, then creating `main`, merging the project into it, and making it the default branch, following the user's workflow (the user runs all Git commands).
+All six stages are implemented and the user reported 95 passing tests. Confirm with `git status` and `git log` that the documentation update for Stage 6 is committed. Then help with the remaining agreed work: creating `main`, merging the project into it, and making it the default branch, following the user's workflow (the user runs all Git commands).
 
 Do not add features without agreeing on scope first. Optional follow-ups the user may raise: clearer formatter wording for unknown issue actions, a live check of pull-request payloads, the `GitHubHTTPError` status-code change, and the small cleanups listed in section 10.
 

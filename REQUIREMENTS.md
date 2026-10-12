@@ -83,7 +83,7 @@ github-user-activity/
 └── LICENSE
 ```
 
-The `LICENSE` file should be included if an appropriate project license is selected before publication. The structure above is intended; actual implementation status must be verified separately.
+The `LICENSE` file contains the MIT License, selected before publication. The structure above is intended; actual implementation status must be verified separately.
 
 ## 5. Architecture and Responsibilities
 
