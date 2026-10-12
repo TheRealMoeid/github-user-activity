@@ -364,8 +364,6 @@ This status is historical and may have changed. Check `git status`, recent commi
 - The live shape of `PullRequestEvent` payloads has not been checked (see Stage 5). Merged pull requests may be reported as closed if `merged` is missing.
 - Live rate-limit, forbidden, server-error, network-failure, and invalid-response behavior has been verified only with mocked tests.
 - API client tests are mocked; they do not establish that every live GitHub request will succeed. The Stage 5 push-payload problem showed that mocked payloads can drift from the live API.
-- The formatter's generic wording for unknown issue actions (for example "Issue activity on issue #1 in <repository>") reads awkwardly in real output. It is accurate and within the agreed requirements; any wording change would be a separate stage.
-- The pull-request branch of the formatter contains unused placeholder strings in its `actions` mapping, and the `ready_for_review` and `converted_to_draft` branches have no tests.
 - Fully CLI-owned error messages would need a status code on `GitHubHTTPError`; not done (see Stage 4).
 - A truncated response (`http.client.IncompleteRead`) is not an `OSError` and may escape the API client as a traceback.
 - Do not describe the project as published or merged until the user confirms it.

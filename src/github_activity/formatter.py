@@ -91,7 +91,7 @@ def _format_issues_event(event: dict[str, Any], repository: str) -> str:
         return f"{actions[action]}{suffix} in {repository}"
 
     if number is not None:
-        return f"Issue activity on issue #{number} in {repository}"
+        return f"Activity on issue #{number} in {repository}"
     return f"Issue activity in {repository}"
 
 
@@ -104,7 +104,7 @@ def _format_issue_comment_event(event: dict[str, Any], repository: str) -> str:
     if action == "created":
         return f"Commented on {target} in {repository}"
     return (
-        f"Issue comment activity on {target} in {repository}"
+        f"Comment activity on {target} in {repository}"
         if number is not None
         else f"Issue comment activity in {repository}"
     )
@@ -122,21 +122,17 @@ def _format_pull_request_event(event: dict[str, Any], repository: str) -> str:
             return f"Merged{suffix} in {repository}"
         return f"Closed{suffix} in {repository}"
 
-    actions = {
-        "opened": "Opened",
-        "reopened": "Reopened",
-        "ready_for_review": "Marked{suffix} ready for review",
-        "converted_to_draft": "Converted{suffix} to draft",
-    }
+    if action == "ready_for_review":
+        return f"Marked{suffix} ready for review in {repository}"
+    if action == "converted_to_draft":
+        return f"Converted{suffix} to draft in {repository}"
+
+    actions = {"opened": "Opened", "reopened": "Reopened"}
     if isinstance(action, str) and action in actions:
-        if action == "ready_for_review":
-            return f"Marked{suffix} ready for review in {repository}"
-        if action == "converted_to_draft":
-            return f"Converted{suffix} to draft in {repository}"
         return f"{actions[action]}{suffix} in {repository}"
 
     if number is not None:
-        return f"Pull request activity on #{number} in {repository}"
+        return f"Activity on pull request #{number} in {repository}"
     return f"Pull request activity in {repository}"
 
 
