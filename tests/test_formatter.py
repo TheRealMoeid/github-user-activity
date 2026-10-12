@@ -78,7 +78,7 @@ def test_formats_supported_events(item, expected):
     ("payload", "expected"),
     [
         ({"action": "reopened", "issue": {"number": 5}}, "Reopened issue #5 in octocat/Hello-World"),
-        ({"action": "mystery", "issue": {"number": 5}}, "Issue activity on issue #5 in octocat/Hello-World"),
+        ({"action": "mystery", "issue": {"number": 5}}, "Activity on issue #5 in octocat/Hello-World"),
         ({}, "Issue activity in octocat/Hello-World"),
     ],
 )
@@ -89,7 +89,7 @@ def test_issue_actions_and_safe_generic_fallbacks(payload, expected):
 @pytest.mark.parametrize(
     ("payload", "expected"),
     [
-        ({"action": "edited", "issue": {"number": 7}}, "Issue comment activity on issue #7 in octocat/Hello-World"),
+        ({"action": "edited", "issue": {"number": 7}}, "Comment activity on issue #7 in octocat/Hello-World"),
         ({}, "Issue comment activity in octocat/Hello-World"),
     ],
 )
@@ -99,7 +99,37 @@ def test_comment_event_does_not_claim_new_comment_for_non_created_action(payload
 
 def test_unknown_pull_request_action_uses_generic_message():
     item = event("PullRequestEvent", {"action": "synchronize", "pull_request": {"number": 12}})
-    assert format_events([item]) == ["Pull request activity on #12 in octocat/Hello-World"]
+    assert format_events([item]) == ["Activity on pull request #12 in octocat/Hello-World"]
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        (
+            {"action": "ready_for_review", "pull_request": {"number": 12}},
+            "Marked pull request #12 ready for review in octocat/Hello-World",
+        ),
+        (
+            {"action": "ready_for_review"},
+            "Marked a pull request ready for review in octocat/Hello-World",
+        ),
+        (
+            {"action": "converted_to_draft", "pull_request": {"number": 12}},
+            "Converted pull request #12 to draft in octocat/Hello-World",
+        ),
+        (
+            {"action": "converted_to_draft"},
+            "Converted a pull request to draft in octocat/Hello-World",
+        ),
+        (
+            {"action": "reopened", "pull_request": {"number": 12}},
+            "Reopened pull request #12 in octocat/Hello-World",
+        ),
+        ({}, "Pull request activity in octocat/Hello-World"),
+    ],
+)
+def test_pull_request_draft_and_review_actions_and_generic_fallback(payload, expected):
+    assert format_events([event("PullRequestEvent", payload)]) == [expected]
 
 
 def test_closed_pull_request_is_not_called_merged_without_merged_flag():
