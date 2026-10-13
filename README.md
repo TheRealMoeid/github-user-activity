@@ -6,14 +6,16 @@ A Python command-line application that retrieves a GitHub user's recent public a
 
 ## Status
 
-**Current stage: Stage 6 — Collapse Repeated Activity Lines (implemented and verified)**
+**Current stage: Stage 8 — API Client Hardening (implemented and verified)**
 
 - **Stage 1 — Project Foundation:** Completed.
 - **Stage 2 — GitHub API Client:** Implemented and tested.
 - **Stage 3 — Event Formatter:** Implemented and tested.
 - **Stage 4 — CLI Integration:** Implemented and verified; the installed command was checked manually.
 - **Stage 5 — Push Event Fallback:** Implemented and verified; pushes are reported without a commit count when GitHub's Events API no longer provides one.
-- **Stage 6 — Collapse Repeated Activity Lines:** Implemented; all 95 tests in the full suite passed in the user's local environment.
+- **Stage 6 — Collapse Repeated Activity Lines:** Implemented and verified; identical consecutive lines are merged with a count.
+- **Stage 7 — Formatter Cleanup:** Implemented and verified; dead code removed and redundant generic wording fixed.
+- **Stage 8 — API Client Hardening:** Implemented; all 110 tests in the full suite passed in the user's local environment. Truncated responses and other protocol errors are reported as normal errors instead of tracebacks.
 
 All three modules have automated tests that do not use the network. The installed `github-activity` command was run against the live GitHub API for existing users (including one whose feed consists of many pushes), a nonexistent user, a missing username, and extra arguments, and the exit codes for success, user not found, and missing username were confirmed. Rate-limit, forbidden, server-error, network-failure, and invalid-response handling is covered by mocked tests only.
 
@@ -128,7 +130,7 @@ python -m pytest tests/test_formatter.py -v
 python -m pytest tests/test_cli.py -v
 ```
 
-**Latest reported verification:** all 95 tests passed. This result was reported by the user from the local development environment (the most recent run with full output, 88 tests at Stage 5, used Python 3.13.16 and pytest 9.1.1 on Windows); it is not a claim of an independent rerun against the current remote branch.
+**Latest reported verification:** 110 tests passed in 0.58 seconds (Python 3.13.16, pytest 9.1.1, Windows). This result was reported by the user from the local development environment; it is not a claim of an independent rerun against the current remote branch.
 
 Automated tests must not require live GitHub API requests.
 
