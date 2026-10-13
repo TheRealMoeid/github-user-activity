@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from http.client import HTTPException, IncompleteRead
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
@@ -71,6 +72,8 @@ def fetch_user_events(username: str) -> list[dict[str, Any]]:
         with urlopen(request, timeout=REQUEST_TIMEOUT) as response:
             try:
                 payload = json.loads(response.read().decode("utf-8"))
+            except IncompleteRead as exc:
+                raise InvalidResponseError("GitHub returned an incomplete response.") from exc
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                 raise InvalidResponseError("GitHub returned invalid JSON.") from exc
     except HTTPError as exc:
@@ -86,7 +89,7 @@ def fetch_user_events(username: str) -> list[dict[str, Any]]:
         if 500 <= exc.code <= 599:
             raise GitHubHTTPError(f"GitHub server returned HTTP {exc.code}; try again later.") from exc
         raise GitHubHTTPError(f"GitHub API returned HTTP {exc.code}.") from exc
-    except (URLError, TimeoutError, OSError) as exc:
+    except (URLError, TimeoutError, OSError, HTTPException) as exc:
         raise GitHubNetworkError("Could not reach GitHub; check your connection and try again.") from exc
 
     if not isinstance(payload, list):

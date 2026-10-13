@@ -17,6 +17,9 @@ ENV/
 build/
 dist/
 
+# Development artifacts
+*.patch
+
 # Editors and operating systems
 .vscode/
 .idea/
