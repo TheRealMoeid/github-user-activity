@@ -14,7 +14,7 @@
 
 **Package and dependency management:** `pip`, virtual environment (`.venv`), and `pyproject.toml` using setuptools.
 
-**Current development stage:** Stage 6 — Collapse Repeated Activity Lines (implemented and verified). All six stages are implemented and the project is licensed under the MIT License (`LICENSE`); the merge into `main` remains.
+**Current development stage:** Stage 8 — API Client Hardening (implemented and verified). All eight stages are implemented and the project is licensed under the MIT License (`LICENSE`); the merge of `stage-8-api-hardening` into `main` remains.
 
 **Requirements source of truth:** `REQUIREMENTS.md`
 
@@ -167,6 +167,43 @@ Reported verification:
 - The user reported that all 95 tests passed. The pytest output for this run was not shared, so its timing and tool versions are not recorded here.
 - Live check: `github-activity josebbk` prints a single `Pushed to main in josebbk/99ways-website (30 times)` line, and `github-activity TheRealMoeid` shows merged runs such as `(3 times)` while non-adjacent duplicates stay separate.
 - Pushed as `origin/stage-6-collapse-repeats` (commit `8363eb1`).
+
+### Stage 7: Formatter Cleanup — Implemented and Verified
+
+Implementation file: `src/github_activity/formatter.py`
+
+Test file: `tests/test_formatter.py`
+
+Scope (agreed): remove dead code and fix redundant wording only. No new named issue actions were added.
+
+- The pull-request formatter no longer carries unused placeholder strings in its `actions` mapping. `ready_for_review` and `converted_to_draft` are explicit branches, and the mapping holds only `opened` and `reopened`. Behavior is unchanged.
+- Generic wording no longer repeats "issue": `Activity on issue #<n> in <repository>`, `Comment activity on issue #<n> in <repository>`, and `Activity on pull request #<n> in <repository>`. The versions without a number (`Issue activity in <repository>`, `Issue comment activity in <repository>`, `Pull request activity in <repository>`) are unchanged.
+- Tests added for the `ready_for_review` and `converted_to_draft` branches (with and without a number), `reopened`, and the empty-payload fallback.
+- Rejected: naming more issue actions such as `labeled` or `assigned`. The redundancy fix was chosen as the smaller change.
+
+Reported verification:
+
+- The user reported that all 101 tests passed. The pytest output for this run was not shared.
+- Live check: `github-activity TheRealMoeid` shows lines such as `Activity on issue #4 in TheRealMoeid/github-user-activity (3 times)`.
+- Pushed as `origin/stage-7-formatter-cleanup` (commit `31023c3`) and merged into `main` through pull request #5.
+
+### Stage 8: API Client Hardening — Implemented and Verified
+
+Implementation file: `src/github_activity/github_api.py`
+
+Test file: `tests/test_github_api.py`
+
+- A truncated response body (`http.client.IncompleteRead`) now raises `InvalidResponseError("GitHub returned an incomplete response.")` instead of escaping as a traceback. The CLI shows its generic "response could not be processed" message for it.
+- Other `http.client.HTTPException` cases, such as `BadStatusLine`, are handled together with URL, timeout, and operating-system errors as `GitHubNetworkError`. `HTTPError` is still caught first, so the HTTP status classification is unchanged.
+- New tests assert the exact message and exception class for 404, 429, a plain 403, 500, another 4xx (418), and a `URLError`, and cover `IncompleteRead`, `HTTPException`, and `BadStatusLine`.
+- `*.patch` was added to `.gitignore`, so development patch files no longer appear as untracked.
+- Rejected: a status code on `GitHubHTTPError` (an architecture change for messages that already meet the requirements) and a `python -m` entry point (not required).
+
+Reported verification:
+
+- `python -m pytest -v`: 110 passed in 0.58s (Python 3.13.16, pytest 9.1.1, Windows).
+- Not verified live: the new paths only occur on broken or truncated connections, so they are covered by mocked tests only.
+- Pushed as `origin/stage-8-api-hardening` (commit `39d2641`); not yet merged into `main` when this document was written.
 
 ---
 
@@ -348,11 +385,13 @@ When a stage is completed and verified, update the relevant project context and 
 
 ## 9. Current Git State and Untracked Files
 
-Branches seen on the remote: `phase-1/project-foundation` (default branch), `phase-2/api-client`, `stage-3-event-formatter`, `stage-4-cli-integration`, `stage-5-push-fallback`, and `stage-6-collapse-repeats`. Their history is linear: foundation, API client, a documentation update, Stage 3 (`a07dfc1`), Stage 4 (`febe70f`), the Stage 4 documentation update (`d996cff`), Stage 5 (`4c087e3`), and Stage 6 (`8363eb1`). Each stage branch was created from the previous one. This was checked by inspecting the remote repository, not the user's local working tree.
+`main` is the default branch on the remote. Its tip is `facd1f9`, the merge of pull request #5 (`stage-7-formatter-cleanup`), so it contains everything through Stage 7: foundation, API client, a documentation update, Stage 3 (`a07dfc1`), Stage 4 (`febe70f`), the Stage 4 documentation update (`d996cff`), Stage 5 (`4c087e3`), Stage 6 (`8363eb1`), the Stage 5 and 6 documentation update (`9ab33e3`), the MIT license (`11e7d62`), and Stage 7 (`31023c3`).
 
-Planned finish: the user creates a `main` branch and merges the entire project into it, then makes `main` the default branch. The user controls all commits, pushes, and merges.
+Other remote branches: `phase-1/project-foundation`, `phase-2/api-client`, `stage-3-event-formatter`, `stage-4-cli-integration`, `stage-5-push-fallback`, `stage-6-collapse-repeats`, `add-mit-license`, `stage-7-formatter-cleanup` (all merged into `main`), and `stage-8-api-hardening` (commit `39d2641`, not yet merged when this was written). The documentation update for Stages 7 and 8 is committed on `stage-8-api-hardening`. This was checked by inspecting the remote repository, not the user's local working tree.
 
-Patch files are development artifacts and ordinarily should not be committed. The user's working tree has shown these untracked patch files: `stage-3-event-formatter.patch`, `stage-4-cli-integration.patch`, `stage-4-documentation.patch`, and `stage-5-push-fallback.patch`; later patch files are expected too. Preserve untracked files unless the user authorizes changes.
+The user controls all commits, pushes, and merges.
+
+Patch files are development artifacts. Since Stage 8, `*.patch` is listed in `.gitignore`, so they no longer show as untracked. Preserve the user's local patch files unless the user authorizes changes.
 
 This status is historical and may have changed. Check `git status`, recent commits, and the remote before making further recommendations.
 
@@ -360,12 +399,12 @@ This status is historical and may have changed. Check `git status`, recent commi
 
 ## 10. Known Incomplete Work and Verification Gaps
 
-- The merge into `main` has not been done, and `main` does not exist yet. The remote default branch is still `phase-1/project-foundation`.
+- `stage-8-api-hardening` (including this documentation update) has to be merged into `main`.
 - The live shape of `PullRequestEvent` payloads has not been checked (see Stage 5). Merged pull requests may be reported as closed if `merged` is missing.
-- Live rate-limit, forbidden, server-error, network-failure, and invalid-response behavior has been verified only with mocked tests.
+- Live rate-limit, forbidden, server-error, network-failure, truncated-response, and invalid-response behavior has been verified only with mocked tests.
 - API client tests are mocked; they do not establish that every live GitHub request will succeed. The Stage 5 push-payload problem showed that mocked payloads can drift from the live API.
-- Fully CLI-owned error messages would need a status code on `GitHubHTTPError`; not done (see Stage 4).
-- Do not describe the project as published or merged until the user confirms it.
+- Fully CLI-owned error messages would need a status code on `GitHubHTTPError`; deliberately not done (see Stage 4 and Stage 8).
+- Do not describe the project as published until the user confirms it.
 
 ---
 
@@ -373,8 +412,8 @@ This status is historical and may have changed. Check `git status`, recent commi
 
 Start by confirming the project state from the repository and `REQUIREMENTS.md`.
 
-All six stages are implemented and the user reported 95 passing tests. Confirm with `git status` and `git log` that the documentation update for Stage 6 is committed. Then help with the remaining agreed work: creating `main`, merging the project into it, and making it the default branch, following the user's workflow (the user runs all Git commands).
+All eight stages are implemented, and the user reported 110 passing tests (Python 3.13.16, pytest 9.1.1, Windows) at the end of Stage 8. Confirm with `git status` and `git log` that `stage-8-api-hardening` and this documentation update are merged into `main`. After that, no required work remains.
 
-Do not add features without agreeing on scope first. Optional follow-ups the user may raise: clearer formatter wording for unknown issue actions, a live check of pull-request payloads, the `GitHubHTTPError` status-code change, and the small cleanups listed in section 10.
+Do not add features without agreeing on scope first. Optional follow-ups the user may raise: a live check of pull-request payloads and the `GitHubHTTPError` status-code change.
 
 Preserve the user's patch-first workflow, avoid unnecessary scope, and clearly distinguish verified facts from assumptions.

@@ -6,20 +6,21 @@
 **Python package:** `github_activity`  
 **CLI command:** `github-activity`  
 **Python version:** Python 3.13+  
-**Status:** Requirements agreed; implementation stages 1 to 6 are complete.
+**Status:** Requirements agreed; implementation stages 1 to 8 are complete.
 
 Build a command-line application that accepts a GitHub username, retrieves that user's recent public GitHub events through the GitHub REST API, and displays supported activity in a readable terminal format.
 
 The application is intended to satisfy the roadmap.sh GitHub User Activity project while using a small, maintainable Python architecture.
 
-### Implementation status as of the Stage 6 verification
+### Implementation status as of the Stage 8 verification
 
 - Project foundation: implemented.
 - GitHub API client: implemented.
 - Event formatter: implemented.
 - CLI integration: implemented.
 - Push-event fallback (Stage 5) and repeated-line collapsing (Stage 6): implemented.
-- Full automated test suite: 95 tests passed in the user's reported local run.
+- Formatter cleanup (Stage 7) and API client hardening (Stage 8): implemented.
+- Full automated test suite: 110 tests passed in the user's reported local run.
 - Installed command: checked manually for existing users, a nonexistent user, a missing username, and extra arguments.
 
 These statuses describe reported implementation progress and do not change the requirements or acceptance criteria below.
