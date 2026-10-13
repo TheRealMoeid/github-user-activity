@@ -1,6 +1,7 @@
 """Deterministic tests for the GitHub REST API client."""
 
 import json
+from http.client import BadStatusLine, HTTPException, IncompleteRead
 from io import BytesIO
 from urllib.error import HTTPError, URLError
 from unittest.mock import MagicMock, patch
@@ -82,7 +83,16 @@ def test_403_with_rate_limit_header_is_rate_limit():
             github_api.fetch_user_events("octocat")
 
 
-@pytest.mark.parametrize("failure", [URLError("offline"), TimeoutError("timed out"), OSError("socket failure")])
+@pytest.mark.parametrize(
+    "failure",
+    [
+        URLError("offline"),
+        TimeoutError("timed out"),
+        OSError("socket failure"),
+        HTTPException("protocol error"),
+        BadStatusLine("garbage"),
+    ],
+)
 def test_network_failures_are_classified(failure):
     with patch("github_activity.github_api.urlopen", side_effect=failure):
         with pytest.raises(github_api.GitHubNetworkError):
@@ -109,3 +119,50 @@ def test_empty_username_is_rejected_without_request():
         with pytest.raises(ValueError):
             github_api.fetch_user_events(" ")
     urlopen.assert_not_called()
+
+
+def test_incomplete_read_is_reported_as_invalid_response():
+    response = make_response([])
+    response.read.side_effect = IncompleteRead(b"[{", 100)
+    with patch("github_activity.github_api.urlopen", return_value=response):
+        with pytest.raises(github_api.InvalidResponseError) as info:
+            github_api.fetch_user_events("octocat")
+    assert str(info.value) == "GitHub returned an incomplete response."
+
+
+@pytest.mark.parametrize(
+    ("error", "expected_class", "expected_message"),
+    [
+        (make_http_error(404, {"message": "Not Found"}), github_api.UserNotFoundError, "GitHub user was not found."),
+        (
+            make_http_error(429, {"message": "Too Many Requests"}),
+            github_api.RateLimitError,
+            "GitHub API rate limit exceeded; wait before retrying.",
+        ),
+        (
+            make_http_error(403, {"message": "Resource forbidden"}),
+            github_api.ForbiddenError,
+            "GitHub denied access to the API request.",
+        ),
+        (
+            make_http_error(500, {"message": "Server Error"}),
+            github_api.GitHubHTTPError,
+            "GitHub server returned HTTP 500; try again later.",
+        ),
+        (
+            make_http_error(418, {"message": "teapot"}),
+            github_api.GitHubHTTPError,
+            "GitHub API returned HTTP 418.",
+        ),
+        (
+            URLError("offline"),
+            github_api.GitHubNetworkError,
+            "Could not reach GitHub; check your connection and try again.",
+        ),
+    ],
+)
+def test_error_messages_are_concise_and_user_facing(error, expected_class, expected_message):
+    with patch("github_activity.github_api.urlopen", side_effect=error):
+        with pytest.raises(expected_class) as info:
+            github_api.fetch_user_events("octocat")
+    assert str(info.value) == expected_message
