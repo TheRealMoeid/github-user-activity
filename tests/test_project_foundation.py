@@ -28,5 +28,5 @@ def test_src_package_has_expected_modules() -> None:
 
 
 def test_project_documentation_files_exist() -> None:
-    for filename in ("README.md", "REQUIREMENTS.md", "PROJECT_CONTEXT.md"):
+    for filename in ("README.md", "LICENSE"):
         assert (ROOT / filename).is_file()

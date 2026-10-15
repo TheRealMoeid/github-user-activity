@@ -1,156 +1,131 @@
 # GitHub User Activity CLI
 
-A Python command-line application that retrieves a GitHub user's recent public activity and formats supported events into concise, human-readable messages.
+A small command line tool that shows a GitHub user's recent public activity in the terminal. It uses only the Python standard library, so there is nothing to install besides the project itself.
 
-**Repository:** https://github.com/TheRealMoeid/github-user-activity
-
-## Status
-
-**Current stage: Stage 8 — API Client Hardening (implemented and verified)**
-
-- **Stage 1 — Project Foundation:** Completed.
-- **Stage 2 — GitHub API Client:** Implemented and tested.
-- **Stage 3 — Event Formatter:** Implemented and tested.
-- **Stage 4 — CLI Integration:** Implemented and verified; the installed command was checked manually.
-- **Stage 5 — Push Event Fallback:** Implemented and verified; pushes are reported without a commit count when GitHub's Events API no longer provides one.
-- **Stage 6 — Collapse Repeated Activity Lines:** Implemented and verified; identical consecutive lines are merged with a count.
-- **Stage 7 — Formatter Cleanup:** Implemented and verified; dead code removed and redundant generic wording fixed.
-- **Stage 8 — API Client Hardening:** Implemented; all 110 tests in the full suite passed in the user's local environment. Truncated responses and other protocol errors are reported as normal errors instead of tracebacks.
-
-All three modules have automated tests that do not use the network. The installed `github-activity` command was run against the live GitHub API for existing users (including one whose feed consists of many pushes), a nonexistent user, a missing username, and extra arguments, and the exit codes for success, user not found, and missing username were confirmed. Rate-limit, forbidden, server-error, network-failure, and invalid-response handling is covered by mocked tests only.
+This project is based on the [GitHub User Activity](https://roadmap.sh/projects/github-user-activity) challenge from roadmap.sh.
 
 ## Features
 
-- Retrieves recent public GitHub events through the GitHub REST API.
-- Uses Python's standard library for HTTP requests and JSON processing.
-- Formats eight supported event types into readable messages.
-- Provides a `github-activity <username>` command with plain output, concise error messages, and documented exit codes.
-- Handles incomplete event payloads without inventing activity details.
-- Skips unsupported or unusable events without stopping the remaining activity from being processed.
-- Includes automated tests that do not require a live GitHub connection.
+- Fetches recent public events from the GitHub REST API
+- Turns eight event types into short, readable lines
+- Merges repeated consecutive lines into one line with a count
+- Reports errors in plain language, never as a Python traceback
+- Uses clear exit codes, so it works in scripts
+- Needs no third party runtime packages and no GitHub token
 
 ## Requirements
 
-- Python 3.13 or later.
-- `pip`.
-- A Python virtual environment.
-- Git for repository development.
+Python 3.13 or newer.
 
-Runtime HTTP and JSON handling use the Python standard library. `pytest` is a development and testing dependency, not a runtime dependency.
+## Installation
 
-## Development setup
-
-### Windows PowerShell
+Windows PowerShell:
 
 ```powershell
+git clone https://github.com/TheRealMoeid/github-user-activity.git
+cd github-user-activity
 py -3.13 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
-### macOS / Linux
+macOS or Linux:
 
 ```bash
+git clone https://github.com/TheRealMoeid/github-user-activity.git
+cd github-user-activity
 python3.13 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
-## Usage
+The `[dev]` part also installs pytest. Leave it out if you only want to run the tool.
 
-After installing the project (see Development setup), run:
+## Usage
 
 ```bash
 github-activity <username>
 ```
 
-Example output:
+Example:
 
 ```text
+$ github-activity octocat
 GitHub activity for octocat:
 
-- Pushed 3 commits to octocat/Hello-World
+- Pushed to main in octocat/Hello-World (3 times)
 - Opened issue #42 in octocat/Hello-World
 - Starred octocat/Spoon-Knife
 - Forked octocat/example
 ```
 
-Actual output depends on the public events returned by GitHub.
+The output depends on what GitHub returns for that user at that moment. Identical lines that appear next to each other are merged, and lines that are separated by other activity stay separate, so the order of the feed is kept.
 
-Identical consecutive lines are merged into one line with a count, for example `- Pushed to main in octocat/Hello-World (3 times)`.
+## Supported events
 
-## Error behavior and exit codes
-
-Activity and the "no activity" messages are printed to stdout. Usage and error messages are printed to stderr, and expected failures never show a Python traceback.
-
-| Situation | Output | Exit code |
-|---|---|---|
-| Activity displayed | Header and activity list | 0 |
-| Empty API response | `No recent public activity found for <username>.` | 0 |
-| Events returned, none supported | `No supported recent activity to display for <username>.` | 0 |
-| Missing, extra, or blank argument | Usage message | 2 |
-| User not found | `Error: GitHub user '<username>' was not found.` | 1 |
-| Rate limit | Error asking you to wait before retrying | 1 |
-| Other forbidden response | Error stating that GitHub denied access | 1 |
-| GitHub server error | Error suggesting you try again later | 1 |
-| Network failure or timeout | Error stating that GitHub could not be reached | 1 |
-| Invalid or unexpected API response | Error stating that the response could not be processed | 1 |
-
-## Supported event types
-
-The formatter supports these eight event types:
-
-| Event type | Example activity |
+| Event | Example line |
 |---|---|
-| `PushEvent` | Pushed 3 commits to a repository, or Pushed to a branch when GitHub provides no commit count |
-| `IssuesEvent` | Opened issue #42 |
-| `IssueCommentEvent` | Commented on issue #42 |
-| `PullRequestEvent` | Opened or merged pull request #12 |
-| `WatchEvent` | Starred a repository |
-| `ForkEvent` | Forked a repository |
-| `CreateEvent` | Created a branch, tag, or repository |
-| `DeleteEvent` | Deleted a branch or tag |
+| Push | `Pushed to main in octocat/Hello-World` |
+| Issue | `Opened issue #42 in octocat/Hello-World` |
+| Issue comment | `Commented on issue #42 in octocat/Hello-World` |
+| Pull request | `Merged pull request #12 in octocat/Hello-World` |
+| Star | `Starred octocat/Spoon-Knife` |
+| Fork | `Forked octocat/example` |
+| Create | `Created branch feature/login in octocat/Hello-World` |
+| Delete | `Deleted tag v1.0 in octocat/Hello-World` |
 
-Unknown actions use generic wording only when the event remains reliably identifiable. Events that cannot be described safely are skipped.
+Some notes on the wording:
 
-## Run tests
+- GitHub's Events API no longer includes commit counts in push events, so a push is shown as `Pushed to <branch> in <repository>`. A count such as `Pushed 3 commits to ...` only appears when the data contains a reliable one.
+- A closed pull request is only called merged when GitHub says so explicitly. Otherwise it is shown as closed.
+- Unknown actions get generic wording such as `Activity on issue #7`, and events that cannot be described safely are skipped.
 
-Activate the virtual environment, then run:
+## Errors and exit codes
 
-```powershell
+Results go to stdout. Usage and error messages go to stderr.
+
+| Situation | Exit code |
+|---|---|
+| Activity shown | 0 |
+| No public activity found | 0 |
+| Events found, but none supported | 0 |
+| User not found, rate limit, access denied, server error, network failure, unreadable response | 1 |
+| Missing, extra, or blank username | 2 |
+
+Example messages:
+
+```text
+Error: GitHub user 'someone' was not found.
+Error: GitHub API rate limit exceeded; wait before retrying.
+Error: Could not reach GitHub; check your connection and try again.
+```
+
+## Project layout
+
+```text
+src/github_activity/
+    cli.py          argument parsing, printing, exit codes
+    github_api.py   the HTTP request, response checks, API errors
+    formatter.py    turns events into readable lines
+tests/              pytest tests, no network needed
+```
+
+Each module has one job. The CLI never builds requests, the API client never prints, and the formatter does neither.
+
+## Running the tests
+
+```bash
 python -m pytest -v
 ```
 
-To run only the formatter or CLI tests:
-
-```powershell
-python -m pytest tests/test_formatter.py -v
-python -m pytest tests/test_cli.py -v
-```
-
-**Latest reported verification:** 110 tests passed in 0.58 seconds (Python 3.13.16, pytest 9.1.1, Windows). This result was reported by the user from the local development environment; it is not a claim of an independent rerun against the current remote branch.
-
-Automated tests must not require live GitHub API requests.
+All tests use mocked responses, so they run without an internet connection.
 
 ## Limitations
 
-Version 1 is intended to show recent public events exposed by GitHub's Events API, not a user's complete GitHub history.
+- It shows only the recent public events GitHub provides, not a full history
+- No authentication, so the unauthenticated rate limit applies
+- No pagination, caching, or colored output
 
-The following features are out of scope:
+## License
 
-- GitHub authentication or personal access tokens.
-- Pagination or complete activity-history retrieval.
-- Caching or persistent storage.
-- Asynchronous HTTP requests.
-- Third-party HTTP clients such as `requests` or `httpx`.
-- GitHub GraphQL API.
-- Colored output or terminal UI frameworks.
-- Background jobs or configuration files.
-
-## Project documentation
-
-- [REQUIREMENTS.md](REQUIREMENTS.md) — Agreed functional and technical requirements.
-- [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) — Architecture, development status, decisions, and AI handoff instructions.
-- [LICENSE](LICENSE) — MIT License.
+MIT, see [LICENSE](LICENSE).
